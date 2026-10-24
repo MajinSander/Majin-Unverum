@@ -23,15 +23,22 @@ namespace SparkingUnverum
         public string Folder { get; init; }
         public Metadata Metadata { get; init; }
         public GameBananaSubmission Submission { get; init; }
-        public GameBananaItemUpdate Update => Submission.Updates[0];
+        // A file of the page newer than the downloaded ones, null when only an update post says there is news
+        public GameBananaItemFile NewerFile { get; init; }
+        // The update post, unless the news is a file uploaded after it
+        public GameBananaItemUpdate Update => Submission.Updates is { Count: > 0 } updates
+            && (NewerFile == null || updates[0].DateAdded >= NewerFile.DateAdded.AddHours(-1)) ? updates[0] : null;
         public string Name => Path.GetFileName(Folder);
         public Uri Image => Submission.Image ?? Metadata.preview;
-        public string Title => $"{Update.Title} {Update.Version}".Trim();
-        public string When => StringConverters.FormatTimeAgo(DateTime.UtcNow - Update.DateAdded);
+        public string Title => Update != null ? $"{Update.Title} {Update.Version}".Trim()
+            : string.IsNullOrWhiteSpace(NewerFile.Version) ? Loc.T("Update.NewFile", NewerFile.FileName) : Loc.T("Update.NewFileVersion", NewerFile.FileName, NewerFile.Version);
+        public string When => StringConverters.FormatTimeAgo(DateTime.UtcNow - (Update?.DateAdded ?? NewerFile.DateAdded));
         public string Changes
         {
             get
             {
+                if (Update == null)
+                    return NewerFile.Description?.Trim() ?? string.Empty;
                 var lines = (Update.Changes ?? new()).Where(x => !string.IsNullOrWhiteSpace(x.Text)).Select(x => $"• [{x.Category}] {x.Text}").ToList();
                 var text = StringConverters.ConvertHtmlToText(Update.Text ?? string.Empty);
                 if (text.Length > 0)
@@ -109,17 +116,16 @@ namespace SparkingUnverum
                     newStates[name] = ModState.Unavailable;
                     continue;
                 }
-                var latest = submission.LatestUpdateDate;
                 // Mods without a date yet, remember the current state and check next time
                 if (mod.Metadata.lastupdate == null)
                 {
-                    mod.Metadata.lastupdate = latest ?? new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                    mod.Metadata.lastupdate = submission.LatestUpdateDate ?? new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
                     ModDownloader.SaveMetadata(mod.Folder, mod.Metadata);
                     continue;
                 }
-                if (latest != null && DateTime.Compare(AsUtc(mod.Metadata.lastupdate.Value), latest.Value) < 0)
+                if (HasUpdate(mod.Metadata, submission, out var newerFile))
                 {
-                    result.Pending.Add(new PendingUpdate { Folder = mod.Folder, Metadata = mod.Metadata, Submission = submission });
+                    result.Pending.Add(new PendingUpdate { Folder = mod.Folder, Metadata = mod.Metadata, Submission = submission, NewerFile = newerFile });
                     newStates[name] = ModState.UpdateAvailable;
                 }
             }
@@ -134,12 +140,86 @@ namespace SparkingUnverum
         private static DateTime AsUtc(DateTime date) =>
             date.Kind == DateTimeKind.Local ? date.ToUniversalTime() : DateTime.SpecifyKind(date, DateTimeKind.Utc);
 
+        // An update post newer than the mod, or a file of the page newer than the downloaded ones
+        public static bool HasUpdate(Metadata metadata, GameBananaSubmission submission, out GameBananaItemFile newerFile)
+        {
+            newerFile = NewerFile(metadata, submission);
+            var latest = submission.LatestUpdateDate;
+            return newerFile != null || (latest != null && metadata.lastupdate != null && AsUtc(metadata.lastupdate.Value) < latest.Value);
+        }
+
+        // A file of the page newer than the downloaded ones: one uploaded after the download (authors don't always
+        // write an update post) or a higher version than the one chosen (an old file picked when a new one was there).
+        // Mods of the classic Unverum only remember the description of their file: just the version is compared
+        public static GameBananaItemFile NewerFile(Metadata metadata, GameBananaSubmission submission)
+        {
+            var files = submission.AllFiles;
+            if (files.Count == 0)
+                return null;
+            List<GameBananaItemFile> mine;
+            if (metadata.files is { Count: > 0 })
+                mine = files.Where(f => metadata.files.Contains(f.FileName, StringComparer.OrdinalIgnoreCase)).ToList();
+            else if (ModMerger.MatchFile(metadata.filedescription, files) is GameBananaItemFile described)
+                mine = new() { described };
+            else
+                return null;
+            var seen = metadata.filesseen is DateTime skipped ? AsUtc(skipped) : DateTime.MinValue;
+            var others = files.Where(f => !mine.Contains(f) && f.DateAdded > seen).ToList();
+            var newestMine = mine.Count > 0 ? mine.Max(f => f.DateAdded) : DateTime.MinValue;
+
+            if (metadata.installed is DateTime installed && metadata.files is { Count: > 0 })
+            {
+                var since = AsUtc(installed) > newestMine ? AsUtc(installed) : newestMine;
+                var uploaded = others.Where(f => f.DateAdded > since.AddMinutes(2)).OrderByDescending(f => f.DateAddedLong).FirstOrDefault();
+                if (uploaded != null)
+                    return uploaded;
+            }
+
+            var myVersion = mine.Select(f => f.Version).Where(v => ParseVersion(v) != null).OrderByDescending(v => v, VersionComparer).FirstOrDefault();
+            if (myVersion == null)
+                return null;
+            // Several downloads of a mod (Base, SSJ...) have their own versions: compare with the same file when the page has it.
+            // A file with another name only counts when it is the version the page announces (its author renamed the download)
+            var sameFile = new HashSet<string>(mine.Select(f => BaseName(f.FileName)));
+            var announced = new[] { submission.Version, submission.Updates?.FirstOrDefault()?.Version }.Where(v => ParseVersion(v) != null).ToList();
+            var candidates = others.Any(f => sameFile.Contains(BaseName(f.FileName)))
+                ? others.Where(f => sameFile.Contains(BaseName(f.FileName)))
+                : others.Where(f => announced.Any(v => VersionComparer.Compare(f.Version, v) == 0));
+            return candidates.Where(f => f.DateAdded >= newestMine && VersionComparer.Compare(f.Version, myVersion) > 0)
+                .OrderByDescending(f => f.DateAddedLong).FirstOrDefault();
+        }
+
+        // "v1.4", "1.4.2", "V1.3 - fixes" -> numbers to compare, null without any
+        private static int[] ParseVersion(string text)
+        {
+            var match = text == null ? null : Regex.Match(text, @"\d+(\.\d+)*");
+            return match is { Success: true } ? match.Value.Split('.').Select(p => int.TryParse(p, out var n) ? n : 0).ToArray() : null;
+        }
+
+        private static readonly Comparer<string> VersionComparer = Comparer<string>.Create((a, b) =>
+        {
+            var x = ParseVersion(a);
+            var y = ParseVersion(b);
+            if (x == null || y == null)
+                return x == null ? (y == null ? 0 : -1) : 1;
+            for (int i = 0; i < Math.Max(x.Length, y.Length); i++)
+            {
+                var difference = (i < x.Length ? x[i] : 0).CompareTo(i < y.Length ? y[i] : 0);
+                if (difference != 0)
+                    return difference;
+            }
+            return 0;
+        });
+
         // Marks the updates as seen without downloading them
         public static void Skip(IEnumerable<PendingUpdate> updates)
         {
             foreach (var pending in updates)
             {
-                pending.Metadata.lastupdate = pending.Update.DateAdded;
+                if (pending.Submission.LatestUpdateDate is DateTime post)
+                    pending.Metadata.lastupdate = post;
+                if (pending.Submission.HasFiles)
+                    pending.Metadata.filesseen = pending.Submission.AllFiles.Max(f => f.DateAdded);
                 ModDownloader.SaveMetadata(pending.Folder, pending.Metadata);
                 states.Remove(pending.Name);
                 Global.logger.WriteLine(Loc.T("Update.Skipped", pending.Name), LoggerType.Info);
@@ -179,24 +259,34 @@ namespace SparkingUnverum
         public static string BaseName(string fileName) =>
             Regex.Replace(Path.GetFileNameWithoutExtension(fileName ?? string.Empty).ToLowerInvariant(), @"(v(?=\d)|[\d\s._\-()\[\]])+", string.Empty);
 
-        // Picks the files to download: the only one, the ones that match what was downloaded last time, or asks
+        // Picks the files to download: the ones it can tell by itself, or asks with the new file chosen
         private static List<GameBananaItemFile> ChooseFiles(PendingUpdate pending)
+        {
+            if (AutoChoose(pending) is List<GameBananaItemFile> chosen)
+                return chosen;
+            var fileBox = new UpdateFileBox(pending.Submission, pending.Submission.AllFiles, pending.NewerFile?.Id ?? 0, false);
+            return fileBox.ShowDialog() == true && fileBox.SelectedFiles.Count > 0 ? fileBox.SelectedFiles : null;
+        }
+
+        // The only file, or the ones that match what was downloaded last time; null when the user has to choose
+        public static List<GameBananaItemFile> AutoChoose(PendingUpdate pending)
         {
             var files = pending.Submission.AllFiles;
             if (files.Count == 1)
                 return files;
             var previous = pending.Metadata.files;
+            // When the news is a file with another name (its author renamed it), the same old file again would change nothing
+            bool HasNews(IEnumerable<GameBananaItemFile> chosen) => pending.NewerFile == null || chosen.Any(f => f.Id == pending.NewerFile.Id);
             if (previous != null && previous.Count > 0)
             {
                 var matches = previous.Select(p => files.Where(f => BaseName(f.FileName) == BaseName(p)).ToList()).ToList();
-                if (matches.All(m => m.Count == 1))
+                if (matches.All(m => m.Count == 1) && HasNews(matches.Select(m => m[0])))
                     return matches.Select(m => m[0]).Distinct().ToList();
             }
             // Mods installed by the classic Unverum only remember the description of the downloaded file
-            else if (ModMerger.MatchFile(pending.Metadata.filedescription, files) is GameBananaItemFile byDescription)
+            else if (ModMerger.MatchFile(pending.Metadata.filedescription, files) is GameBananaItemFile byDescription && HasNews(new[] { byDescription }))
                 return new List<GameBananaItemFile> { byDescription };
-            var fileBox = new UpdateFileBox(pending.Submission, files, 0, false);
-            return fileBox.ShowDialog() == true && fileBox.SelectedFiles.Count > 0 ? fileBox.SelectedFiles : null;
+            return null;
         }
 
         // true = installed, false = failed, null = cancelled by the user (stop the batch)

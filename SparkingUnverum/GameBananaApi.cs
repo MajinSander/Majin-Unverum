@@ -89,7 +89,7 @@ namespace SparkingUnverum
 
         public static async Task<GameBananaSubmission> GetSubmission(string model, long id)
         {
-            var submission = await Get<GameBananaSubmission>($"{Base}/{model}/{id}?_csvProperties={GameBananaSubmission.Properties}");
+            var submission = await Get<GameBananaSubmission>($"{Base}/{model}/{id}?_csvProperties={GameBananaSubmission.PropertiesOf(model)}");
             if (submission != null)
             {
                 submission.Model = model;
@@ -108,7 +108,7 @@ namespace SparkingUnverum
             {
                 try
                 {
-                    var url = $"{Base}/{model}/Multi?_csvRowIds={string.Join(",", chunk)}&_csvProperties={GameBananaSubmission.UpdateProperties}";
+                    var url = $"{Base}/{model}/Multi?_csvRowIds={string.Join(",", chunk)}&_csvProperties={GameBananaSubmission.UpdatePropertiesOf(model)}";
                     var submissions = await Get<List<GameBananaSubmission>>(url);
                     if (submissions == null)
                         continue;

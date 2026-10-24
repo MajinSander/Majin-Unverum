@@ -50,6 +50,8 @@ namespace SparkingUnverum
         public List<string> files { get; set; }
         // Majin Unverum only: when the files were extracted, newer files in the mod were written by the game or the user
         public DateTime? installed { get; set; }
+        // Majin Unverum only: newest file of the GameBanana page when the user skipped an update, older ones aren't news
+        public DateTime? filesseen { get; set; }
     }
     public class Config
     {

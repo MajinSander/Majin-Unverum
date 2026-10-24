@@ -110,6 +110,9 @@ namespace SparkingUnverum
         public long DateAddedLong { get; set; }
         [JsonPropertyName("_sMd5Checksum")]
         public string Md5 { get; set; }
+        // Written by the author, often empty
+        [JsonPropertyName("_sVersion")]
+        public string Version { get; set; }
         [JsonIgnore]
         public string ConvertedFileSize => StringConverters.FormatSize(Filesize);
         [JsonIgnore]
@@ -169,6 +172,9 @@ namespace SparkingUnverum
             "_nLikeCount,_nViewCount,_nDownloadCount,_bIsTrashed,_bIsWithheld,_bIsPrivate,_nStatus";
         // Plus the full description shown in the mod store
         public const string Properties = UpdateProperties + ",_sText";
+        // Only mods have a version on their page: GameBanana refuses the request when it is asked of sounds or WiPs
+        public static string UpdatePropertiesOf(string model) => string.Equals(model, "Mod", StringComparison.OrdinalIgnoreCase) ? UpdateProperties + ",_sVersion" : UpdateProperties;
+        public static string PropertiesOf(string model) => string.Equals(model, "Mod", StringComparison.OrdinalIgnoreCase) ? Properties + ",_sVersion" : Properties;
         [JsonPropertyName("_idRow")]
         public long Id { get; set; }
         [JsonIgnore]
@@ -203,6 +209,9 @@ namespace SparkingUnverum
         public long? DateUpdatedLong { get; set; }
         [JsonPropertyName("_bHasUpdates")]
         public bool? HasUpdates { get; set; }
+        // Version written by the author on the page, often empty
+        [JsonPropertyName("_sVersion")]
+        public string Version { get; set; }
         [JsonPropertyName("_aLatestUpdates")]
         public List<GameBananaItemUpdate> Updates { get; set; }
         [JsonPropertyName("_bIsNsfw")]
