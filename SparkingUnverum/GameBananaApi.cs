@@ -16,7 +16,9 @@ namespace SparkingUnverum
         Newest,
         Updated,
         MostDownloaded,
-        MostLiked
+        MostLiked,
+        // Not a GameBanana order: favorite mods and the newest of the followed authors
+        Followed
     }
     public enum TypeFilter
     {
@@ -68,6 +70,37 @@ namespace SparkingUnverum
                 _ => "&_sSort=Generic_Newest"
             };
             return await Get<GameBananaPage>(url);
+        }
+
+        // Mods by id with the same fields as the store, for the favorites
+        public static async Task<List<GameBananaRecord>> GetRecords(IEnumerable<long> ids)
+        {
+            var result = new List<GameBananaRecord>();
+            foreach (var chunk in ids.Distinct().Chunk(40))
+            {
+                var records = await Get<List<GameBananaRecord>>($"{Base}/Mod/Multi?_csvRowIds={string.Join(",", chunk)}&_csvProperties={GameBananaRecord.MultiProperties}");
+                foreach (var record in records ?? new())
+                    record.Model = "Mod";
+                result.AddRange(records ?? new());
+            }
+            return result;
+        }
+
+        // The newest mods of an author for this game
+        public static async Task<GameBananaPage> GetAuthorFeed(long authorId, int perPage)
+        {
+            return await Get<GameBananaPage>($"{Base}/Mod/Index?_nPage=1&_nPerpage={perPage}&_aFilters[Generic_Game]={SparkingGame.GameBananaId}" +
+                $"&_aFilters[Generic_Submitter]={authorId}&_sSort=Generic_NewAndUpdated");
+        }
+
+        // What each mod needs, only mods have it
+        public static async Task<Dictionary<long, List<GameBananaRequirement>>> GetRequirements(IEnumerable<long> modIds)
+        {
+            var result = new Dictionary<long, List<GameBananaRequirement>>();
+            foreach (var chunk in modIds.Distinct().Chunk(40))
+                foreach (var submission in await Get<List<GameBananaSubmission>>($"{Base}/Mod/Multi?_csvRowIds={string.Join(",", chunk)}&_csvProperties=_idRow,_aRequirements") ?? new())
+                    result[submission.Id] = submission.Requirements;
+            return result;
         }
 
         // Search always returns 15 records per page

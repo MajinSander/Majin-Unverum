@@ -16,8 +16,22 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" FontSize="17" FontWeight="Bold" Foreground="#f2f2f2" TextTrimming="CharacterEllipsis" Text="{Binding Path=File.FileName}"/>
-                        <TextBlock Grid.Row="1" FontSize="13" Foreground="#a2a2a2" Text="{Binding Path=File.Details}"/>
+                        <DockPanel Grid.Row="0">
+                            <TextBlock DockPanel.Dock="Right" Margin="10,0,0,0" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Text="{Binding Tags}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsOld}" Value="True">
+                                                <Setter Property="Foreground" Value="#FF8A65"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock FontSize="17" FontWeight="Bold" Foreground="#f2f2f2" TextTrimming="CharacterEllipsis" Text="{Binding Path=File.FileName}"/>
+                        </DockPanel>
+                        <TextBlock Grid.Row="1" FontSize="13" Foreground="#a2a2a2" Text="{Binding Path=Details}"/>
                         <TextBlock Grid.Row="2" FontSize="13" Foreground="#c2c2c2" TextWrapping="Wrap" MaxHeight="60" TextTrimming="CharacterEllipsis" Text="{Binding Path=File.Description}">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">

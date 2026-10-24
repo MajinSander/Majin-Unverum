@@ -80,6 +80,17 @@ namespace SparkingUnverum
         public string ShareAuthor { get; set; }
         // Order of the mod store the user chose last, null = new and updated, like GameBanana
         public int? StoreSort { get; set; }
+        // Last time the store was opened: what came out later is marked as new
+        public DateTime? StoreLastVisit { get; set; }
+        public bool HideInstalled { get; set; }
+        // GameBanana mods marked with a star ("Mod:123") and authors followed in the store
+        public List<string> FavoriteMods { get; set; } = new();
+        public List<FollowedAuthor> FollowedAuthors { get; set; } = new();
+    }
+    public class FollowedAuthor
+    {
+        public long Id { get; set; }
+        public string Name { get; set; }
     }
     public class GameConfig
     {

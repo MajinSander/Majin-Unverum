@@ -76,6 +76,7 @@ namespace SparkingUnverum
             RosterPanel.Closed += OnCategoriesClosed;
             RosterPanel.EnabledChanged += UpdateStatsText;
             RosterPanel.ShowInList += ShowModInList;
+            RosterPanel.SearchStore += SearchStore;
             searchTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
             searchTimer.Tick += (s, e) =>
             {
@@ -86,6 +87,7 @@ namespace SparkingUnverum
 
             ZsJsonCheckbox.IsChecked = Global.config.HideZeroSparkJsons;
             ColorZCheckbox.IsChecked = Global.config.HideColorZ;
+            HideInstalledCheckbox.IsChecked = Global.config.HideInstalled;
             NSFWCheckbox.IsChecked = Global.config.IncludeNsfw;
             FilterBox.ItemsSource = FilterNames;
             // Like the mods page of the game on GameBanana: featured mods change only when GameBanana picks one,
@@ -739,6 +741,7 @@ namespace SparkingUnverum
             Global.config.RightGridWidth = MiddleGrid.ColumnDefinitions[2].Width.Value;
             Global.config.HideZeroSparkJsons = ZsJsonCheckbox.IsChecked == true;
             Global.config.HideColorZ = ColorZCheckbox.IsChecked == true;
+            Global.config.HideInstalled = HideInstalledCheckbox.IsChecked == true;
             Global.config.IncludeNsfw = NSFWCheckbox.IsChecked == true;
             Global.UpdateConfig();
             Application.Current.Shutdown();
@@ -1222,7 +1225,7 @@ namespace SparkingUnverum
         private static List<string> FilterNames => new()
         {
             Loc.T("Browser.SortNewAndUpdated"), Loc.T("Browser.SortFeatured"), Loc.T("Browser.SortNewest"), Loc.T("Browser.SortUpdated"),
-            Loc.T("Browser.SortDownloads"), Loc.T("Browser.SortLikes")
+            Loc.T("Browser.SortDownloads"), Loc.T("Browser.SortLikes"), Loc.T("Browser.SortFollowed")
         };
         private static GameBananaCategory AllCategory => new() { Name = Loc.T("Browser.All"), ID = null };
         private static GameBananaCategory NoCategory => new() { Name = "- - -", ID = null };
@@ -1233,6 +1236,11 @@ namespace SparkingUnverum
         private readonly Dictionary<string, GameBananaSubmission> submissionCache = new();
         private bool browserInitialized;
         private bool filterSelect;
+        // What came out after the previous visit is marked as new; this visit is written when the store first opens
+        private DateTime? previousVisit;
+        private bool visitRemembered;
+        // A search asked from the roster before the store was ready
+        private string pendingStoreSearch;
         private string search;
         private int page = 1;
         private int requestId;
@@ -1258,7 +1266,46 @@ namespace SparkingUnverum
             filterSelect = true;
             SetCategories();
             filterSelect = false;
+            RememberVisit();
+            if (pendingStoreSearch != null)
+            {
+                search = pendingStoreSearch;
+                SearchBar.Text = search;
+                pendingStoreSearch = null;
+                page = 1;
+            }
             RefreshFilter();
+        }
+
+        private void RememberVisit()
+        {
+            if (visitRemembered)
+                return;
+            visitRemembered = true;
+            previousVisit = Global.config.StoreLastVisit is DateTime last
+                ? (last.Kind == DateTimeKind.Local ? last.ToUniversalTime() : DateTime.SpecifyKind(last, DateTimeKind.Utc)) : null;
+            Global.config.StoreLastVisit = DateTime.UtcNow;
+            Global.UpdateConfig();
+            if (previousVisit is DateTime since)
+                Global.logger.WriteLine(Loc.T("Browser.SinceLastVisit", StringConverters.FormatTimeAgo(DateTime.UtcNow - since)), LoggerType.Info);
+        }
+
+        // From the roster: the store searching for a character
+        public void SearchStore(string text)
+        {
+            RosterPanel.Close();
+            CategoriesPanel.Close();
+            if (browserInitialized)
+            {
+                SearchBar.Text = text;
+                ModBrowser.IsSelected = true;
+                Search();
+            }
+            else
+            {
+                pendingStoreSearch = text;
+                ModBrowser.IsSelected = true;
+            }
         }
 
         private async Task<bool> LoadCategories(TypeFilter type)
@@ -1334,11 +1381,14 @@ namespace SparkingUnverum
 
         private void SetBrowserControls(bool enabled)
         {
-            foreach (var control in new Control[] { NSFWCheckbox, ZsJsonCheckbox, ColorZCheckbox, SearchBar, SearchButton, FilterBox, TypeBox,
+            foreach (var control in new Control[] { NSFWCheckbox, ZsJsonCheckbox, ColorZCheckbox, HideInstalledCheckbox, SearchBar, SearchButton, FilterBox, TypeBox,
                 PageBox, PerPageBox, ClearCacheButton })
                 control.IsEnabled = enabled;
-            CatBox.IsEnabled = enabled && search == null;
-            SubCatBox.IsEnabled = enabled && search == null;
+            // Favorites and followed authors are mods of any category
+            var followed = search == null && FilterBox.SelectedIndex == (int)FeedFilter.Followed;
+            CatBox.IsEnabled = enabled && search == null && !followed;
+            SubCatBox.IsEnabled = enabled && search == null && !followed;
+            TypeBox.IsEnabled = enabled && !followed;
             FilterBox.IsEnabled = enabled && search == null;
             ZsJsonCheckbox.Visibility = CurrentType == TypeFilter.Mods ? Visibility.Visible : Visibility.Collapsed;
             ColorZCheckbox.Visibility = CurrentType == TypeFilter.Mods ? Visibility.Visible : Visibility.Collapsed;
@@ -1355,11 +1405,12 @@ namespace SparkingUnverum
             FeedBox.Visibility = Visibility.Collapsed;
             Page.Text = Loc.T("Browser.Page", page);
 
-            var type = CurrentType;
             var filter = (FeedFilter)Math.Max(0, FilterBox.SelectedIndex);
+            var followed = search == null && filter == FeedFilter.Followed;
+            var type = followed ? TypeFilter.Mods : CurrentType;
             var category = (SubCatBox.SelectedItem as GameBananaCategory)?.ID ?? (CatBox.SelectedItem as GameBananaCategory)?.ID;
             var perPage = PerPage;
-            var key = search != null ? $"search|{type}|{search}|{page}" : $"feed|{type}|{filter}|{category}|{page}|{perPage}";
+            var key = search != null ? $"search|{type}|{search}|{page}" : followed ? FollowedKey : $"feed|{type}|{filter}|{category}|{page}|{perPage}";
             List<GameBananaRecord> records;
             int totalPages;
             try
@@ -1368,6 +1419,12 @@ namespace SparkingUnverum
                 {
                     records = cached.Records;
                     totalPages = cached.TotalPages;
+                }
+                else if (followed)
+                {
+                    records = await LoadFollowed();
+                    totalPages = 1;
+                    feedCache[key] = (records, totalPages, DateTime.UtcNow);
                 }
                 else
                 {
@@ -1393,10 +1450,22 @@ namespace SparkingUnverum
             if (id != requestId)
                 return;
 
+            var installed = await Task.Run(InstalledFolders);
+            if (id != requestId)
+                return;
+            var favorites = new HashSet<string>(Global.config.FavoriteMods ?? new());
+            foreach (var record in records)
+            {
+                var model = record.Model ?? "Mod";
+                installed.TryGetValue((model, record.Id), out var folder);
+                record.InstalledFolder = folder;
+                record.IsInstalled = folder != null;
+                record.HasModUpdate = folder != null && ModUpdater.GetState(folder) == ModState.UpdateAvailable;
+                record.IsFavorite = favorites.Contains($"{model}:{record.Id}");
+                record.IsNewSinceVisit = previousVisit is DateTime since && record.DateAdded > since;
+                record.IsUpdatedSinceVisit = !record.IsNewSinceVisit && previousVisit is DateTime before && record.HasUpdates && record.DateUpdated > before;
+            }
             var visible = ApplyLocalFilters(records, type);
-            var installed = InstalledSubmissions();
-            foreach (var record in visible)
-                record.IsInstalled = installed.Contains((record.Model ?? "Mod", record.Id));
             FeedBox.ItemsSource = visible;
             filterSelect = true;
             PageBox.ItemsSource = Enumerable.Range(1, totalPages).ToList();
@@ -1414,22 +1483,58 @@ namespace SparkingUnverum
             {
                 ErrorPanel.Visibility = Visibility.Visible;
                 BrowserRefreshButton.Visibility = Visibility.Collapsed;
-                BrowserMessage.Text = records.Count > 0 ? Loc.T("Browser.AllFiltered") : Loc.T("Browser.NoMods");
+                BrowserMessage.Text = records.Count > 0 ? Loc.T("Browser.AllFiltered") : followed ? Loc.T("Browser.FollowedEmpty") : Loc.T("Browser.NoMods");
             }
             SetBrowserControls(true);
+            await LoadRequirements(visible);
         }
 
-        // (model, id) of every installed mod that came from GameBanana, to mark them in the store
-        private static HashSet<(string, long)> InstalledSubmissions()
+        private const string FollowedKey = "followed";
+
+        // Favorite mods and the newest ones of the followed authors, newest first
+        private static async Task<List<GameBananaRecord>> LoadFollowed()
         {
-            var result = new HashSet<(string, long)>();
+            var records = new List<GameBananaRecord>();
+            var favorites = (Global.config.FavoriteMods ?? new()).Select(f => f.Split(':'))
+                .Where(p => p.Length == 2 && p[0] == "Mod" && long.TryParse(p[1], out _)).Select(p => long.Parse(p[1])).ToList();
+            if (favorites.Count > 0)
+                records.AddRange(await GameBananaApi.GetRecords(favorites));
+            foreach (var author in Global.config.FollowedAuthors ?? new())
+                records.AddRange((await GameBananaApi.GetAuthorFeed(author.Id, 12))?.Records ?? new());
+            // Deleted favorites come back without a name
+            return records.Where(r => !string.IsNullOrEmpty(r.Title)).GroupBy(r => r.Id).Select(g => g.First())
+                .OrderByDescending(r => r.DateUpdated).ToList();
+        }
+
+        // What the mods of the page need, asked in one go once the page is shown; only extra information
+        private static async Task LoadRequirements(List<GameBananaRecord> records)
+        {
+            var mods = records.Where(r => r.CanBeFavorite && r.Requirements == null).ToList();
+            if (mods.Count == 0)
+                return;
+            try
+            {
+                var found = await GameBananaApi.GetRequirements(mods.Select(r => r.Id));
+                var installed = (await Task.Run(InstalledFolders)).Keys.ToHashSet();
+                foreach (var record in mods)
+                    record.SetRequirements(found.TryGetValue(record.Id, out var list) ? list : new(), installed);
+            }
+            catch
+            {
+            }
+        }
+
+        // (model, id) -> folder of every installed mod that came from GameBanana, to mark them in the store
+        private static Dictionary<(string, long), string> InstalledFolders()
+        {
+            var result = new Dictionary<(string, long), string>();
             if (!Directory.Exists(Global.ModsPath))
                 return result;
             foreach (var folder in Directory.GetDirectories(Global.ModsPath))
             {
                 var metadata = ModDownloader.ReadMetadata(folder);
                 if (metadata?.homepage != null && GameBananaApi.TryParseProfileUrl(metadata.homepage.ToString(), out var model, out var id))
-                    result.Add((model, id));
+                    result.TryAdd((model, id), Path.GetFileName(folder));
             }
             return result;
         }
@@ -1443,6 +1548,9 @@ namespace SparkingUnverum
                 result = result.Where(x => x.Category?.ResolvedID != SparkingGame.ZeroSparkJsonCategory);
             if (type == TypeFilter.Mods && ColorZCheckbox.IsChecked == true)
                 result = result.Where(x => !(x.Title?.Contains("ColorZ", StringComparison.InvariantCultureIgnoreCase) ?? false));
+            // Installed mods with a newer version still show, they have something to offer
+            if (HideInstalledCheckbox.IsChecked == true)
+                result = result.Where(x => !x.IsInstalled || x.HasModUpdate);
             return result.ToList();
         }
 
@@ -1584,6 +1692,11 @@ namespace SparkingUnverum
                 button.IsEnabled = false;
             try
             {
+                if (record.HasModUpdate && record.InstalledFolder != null)
+                {
+                    await UpdateFromStore(record);
+                    return;
+                }
                 var folder = await new ModDownloader().BrowserDownload(record);
                 if (folder != null)
                 {
@@ -1597,6 +1710,120 @@ namespace SparkingUnverum
                 if (button != null)
                     button.IsEnabled = true;
             }
+        }
+
+        // The store button of an installed mod with a newer version: the same update as in the updates window
+        private async Task UpdateFromStore(GameBananaRecord record)
+        {
+            if (GameIsRunning("Game.ActionUpdate"))
+                return;
+            var folder = Path.Combine(Global.ModsPath, record.InstalledFolder);
+            GameBananaSubmission submission;
+            try
+            {
+                submission = await GameBananaApi.GetSubmission(record.Model ?? "Mod", record.Id);
+            }
+            catch (Exception ex)
+            {
+                Global.logger.WriteLine(Loc.T("Download.FetchError", ex.Message), LoggerType.Error);
+                return;
+            }
+            var metadata = ModDownloader.ReadMetadata(folder);
+            if (metadata == null || !ModUpdater.HasUpdate(metadata, submission, out var newer))
+            {
+                Global.logger.WriteLine(Loc.T("Browser.AlreadyUpToDate", record.InstalledFolder), LoggerType.Info);
+                record.HasModUpdate = false;
+                return;
+            }
+            SetBusy(true);
+            try
+            {
+                await ModUpdater.Apply(new[] { new PendingUpdate { Folder = folder, Metadata = metadata, Submission = submission, NewerFile = newer } });
+            }
+            finally
+            {
+                SetBusy(false);
+            }
+            record.HasModUpdate = ModUpdater.GetState(record.InstalledFolder) == ModState.UpdateAvailable;
+            Refresh();
+            ModGrid.Items.Refresh();
+        }
+
+        // ---------- Favorites and followed authors ----------
+
+        private void Favorite_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is GameBananaRecord record)
+                SetFavorite(record, !record.IsFavorite);
+        }
+
+        private void SetFavorite(GameBananaRecord record, bool favorite)
+        {
+            var key = $"{record.Model ?? "Mod"}:{record.Id}";
+            Global.config.FavoriteMods ??= new();
+            Global.config.FavoriteMods.Remove(key);
+            if (favorite)
+                Global.config.FavoriteMods.Add(key);
+            Global.UpdateConfig();
+            record.IsFavorite = favorite;
+            feedCache.Remove(FollowedKey);
+        }
+
+        private void DescFavorite_Click(object sender, RoutedEventArgs e)
+        {
+            if (shownRecord == null)
+                return;
+            SetFavorite(shownRecord, !shownRecord.IsFavorite);
+            UpdateDescButtons();
+        }
+
+        private void Follow_Click(object sender, RoutedEventArgs e)
+        {
+            var owner = shownSubmission?.Owner;
+            if (owner == null || owner.Id == 0)
+                return;
+            var authors = Global.config.FollowedAuthors ??= new();
+            var existing = authors.FirstOrDefault(a => a.Id == owner.Id);
+            if (existing != null)
+                authors.Remove(existing);
+            else
+            {
+                authors.Add(new FollowedAuthor { Id = owner.Id, Name = owner.Name });
+                Global.logger.WriteLine(Loc.T("Browser.FollowedLog", owner.Name), LoggerType.Info);
+            }
+            Global.UpdateConfig();
+            feedCache.Remove(FollowedKey);
+            UpdateDescButtons();
+        }
+
+        private void UpdateDescButtons()
+        {
+            if (shownRecord == null || shownSubmission == null)
+            {
+                FavoriteButton.Visibility = Visibility.Collapsed;
+                FollowButton.Visibility = Visibility.Collapsed;
+                return;
+            }
+            FavoriteButton.Visibility = shownRecord.CanBeFavorite ? Visibility.Visible : Visibility.Collapsed;
+            FavoriteButton.Content = Loc.T(shownRecord.IsFavorite ? "Browser.FavoriteOn" : "Browser.FavoriteOff");
+            var owner = shownSubmission.Owner;
+            FollowButton.Visibility = owner != null && owner.Id != 0 ? Visibility.Visible : Visibility.Collapsed;
+            var following = owner != null && (Global.config.FollowedAuthors ?? new()).Any(a => a.Id == owner.Id);
+            FollowButton.Content = Loc.T(following ? "Browser.Following" : "Browser.Follow", owner?.Name);
+        }
+
+        // Each requirement with what Majin Unverum knows about it
+        private static string RequirementLines(GameBananaSubmission submission)
+        {
+            var requirements = submission.Requirements;
+            if (requirements.Count == 0)
+                return string.Empty;
+            var installed = InstalledFolders();
+            var lines = requirements.Select(r => "• " + r.Name + " — " + (r.Automatic ? Loc.T("Requirements.Automatic")
+                : r.OnGameBanana && installed.ContainsKey((r.Model, r.Id)) ? Loc.T("Requirements.Installed")
+                : r.OnGameBanana ? Loc.T("Requirements.OnGameBanana")
+                : Loc.T("Requirements.Outside", r.Url)));
+            return "\n\n" + Loc.T("Requirements.Title") + "\n" + string.Join("\n", lines);
         }
 
         private GameBananaRecord shownRecord;
@@ -1635,6 +1862,7 @@ namespace SparkingUnverum
                 return;
             shownRecord = record;
             shownSubmission = null;
+            UpdateDescButtons();
             DescTitle.Text = record.Title;
             DescText.Document = new FlowDocument();
             DescLoading.Visibility = Visibility.Visible;
@@ -1661,7 +1889,8 @@ namespace SparkingUnverum
             DownloadButton.Visibility = submission.HasFiles ? Visibility.Visible : Visibility.Collapsed;
             AltButton.Visibility = submission.HasAltLinks ? Visibility.Visible : Visibility.Collapsed;
             var header = Loc.T("Browser.InfoHeader", submission.Owner?.Name, submission.CategoryName, submission.Downloads.ToString("N0"), submission.Likes.ToString("N0"));
-            DescText.Document = ConvertToFlowDocument($"{header}\n\n{submission.ConvertedText}");
+            DescText.Document = ConvertToFlowDocument($"{header}{RequirementLines(submission)}\n\n{submission.ConvertedText}");
+            UpdateDescButtons();
             DescText.ScrollToHome();
             imageCounter = 0;
             ShowImage();

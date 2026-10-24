@@ -278,6 +278,13 @@
                                 <TextBlock x:Name="DetailId" Foreground="#808080" FontSize="12" Margin="0,2,0,0"/>
                                 <TextBlock x:Name="DetailSlot" Foreground="#7FC8FF" FontSize="12.5" Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource HiddenWhenEmpty}"/>
                                 <TextBlock x:Name="DetailSummary" Foreground="#c2c2c2" FontSize="12.5" Margin="0,6,0,0" TextWrapping="Wrap" Style="{StaticResource HiddenWhenEmpty}"/>
+                                <Button x:Name="SearchStoreButton" Margin="0,10,0,0" Padding="10,4" HorizontalAlignment="Left" Foreground="#f2f2f2" FontSize="12.5"
+                                        Click="SearchStore_Click" ToolTip="{l:Tr Roster.SearchStoreTooltip}" AutomationProperties.Name="{l:Tr Roster.SearchStore}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <fa5:ImageAwesome Icon="Solid_Search" Height="11" Foreground="#f2f2f2" Margin="0,0,7,0"/>
+                                        <TextBlock Text="{l:Tr Roster.SearchStore}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
                             </StackPanel>
                         </Grid>
 

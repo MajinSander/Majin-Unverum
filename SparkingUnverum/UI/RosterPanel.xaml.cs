@@ -174,6 +174,7 @@ namespace SparkingUnverum.UI
         public event Action Closed;
         public event Action EnabledChanged;
         public event Action<string> ShowInList;
+        public event Action<string> SearchStore;
 
         private RosterData data;
         private readonly ObservableCollection<RosterTile> tiles = new();
@@ -539,6 +540,20 @@ namespace SparkingUnverum.UI
             Global.logger.WriteLine(Loc.T("Roster.LogKept", choice.Mod, string.Join(", ", others), tile.Character.Name), LoggerType.Info);
             EnabledChanged?.Invoke();
             await Reload();
+        }
+
+        // "Goku (Z - Early)" -> "Goku": GameBanana titles don't use the names of the select screen
+        public static string SearchName(string name)
+        {
+            var plain = System.Text.RegularExpressions.Regex.Replace(name ?? string.Empty, @"\s*\([^)]*\)", " ");
+            plain = System.Text.RegularExpressions.Regex.Replace(plain, @"\s+", " ").Trim().Trim(',', '-', ' ');
+            return plain.Length > 0 ? plain : name;
+        }
+
+        private void SearchStore_Click(object sender, RoutedEventArgs e)
+        {
+            if (TileList.SelectedItem is RosterTile tile)
+                SearchStore?.Invoke(SearchName(tile.Character.Name));
         }
 
         private void ModRow_MouseDown(object sender, MouseButtonEventArgs e)

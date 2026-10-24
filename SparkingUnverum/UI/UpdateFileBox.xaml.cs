@@ -9,6 +9,10 @@ namespace SparkingUnverum.UI
     public class SelectableFile : INotifyPropertyChanged
     {
         public GameBananaItemFile File { get; }
+        // Newest, older version, installed: shown next to the name
+        public string Tags { get; init; }
+        public bool IsOld { get; init; }
+        public string Details => string.IsNullOrWhiteSpace(File.Version) ? File.Details : $"v{File.Version.Trim().TrimStart('v', 'V')} · {File.Details}";
         private bool isSelected;
         public bool IsSelected
         {
@@ -37,13 +41,27 @@ namespace SparkingUnverum.UI
         private readonly List<SelectableFile> files;
 
         // showFolderName is false for updates since they go to the existing folder
-        public UpdateFileBox(GameBananaSubmission submission, List<GameBananaItemFile> allFiles, long preselectedFile, bool showFolderName)
+        // installedFiles: names of the files of this mod already downloaded, to tell them apart
+        public UpdateFileBox(GameBananaSubmission submission, List<GameBananaItemFile> allFiles, long preselectedFile, bool showFolderName, IEnumerable<string> installedFiles = null)
         {
             InitializeComponent();
             WindowHelper.CenterOnMain(this);
             // Preselect the file of the 1-click button, otherwise the newest file
             var preselected = allFiles.Any(x => x.Id == preselectedFile) ? preselectedFile : allFiles.OrderByDescending(x => x.DateAddedLong).FirstOrDefault()?.Id ?? 0;
-            files = allFiles.Select(f => new SelectableFile(f, f.Id == preselected || allFiles.Count == 1)).ToList();
+            var described = ModUpdater.DescribeFiles(allFiles, installedFiles);
+            // Newest first, so the old version isn't the first thing to pick
+            files = allFiles.OrderByDescending(f => f.DateAddedLong).Select(f =>
+            {
+                var (newest, old, mine) = described[f.Id];
+                var tags = new List<string>();
+                if (newest)
+                    tags.Add(Loc.T("Files.Newest"));
+                if (old)
+                    tags.Add(Loc.T("Files.Old"));
+                if (mine)
+                    tags.Add(Loc.T("Files.Mine"));
+                return new SelectableFile(f, f.Id == preselected || allFiles.Count == 1) { Tags = string.Join(" · ", tags), IsOld = old };
+            }).ToList();
             FileList.ItemsSource = files;
             TitleBox.Text = submission.Title;
             SubtitleBox.Text = allFiles.Count > 1 ? Loc.T("Files.ChooseMany") : Loc.T("Files.ChooseOne", submission.Owner?.Name);

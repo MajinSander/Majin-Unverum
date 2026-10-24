@@ -30,7 +30,9 @@ namespace SparkingUnverum
             && (NewerFile == null || updates[0].DateAdded >= NewerFile.DateAdded.AddHours(-1)) ? updates[0] : null;
         public string Name => Path.GetFileName(Folder);
         public Uri Image => Submission.Image ?? Metadata.preview;
-        public string Title => Update != null ? $"{Update.Title} {Update.Version}".Trim()
+        // Authors often write the version in the title too: "BetterfightZ 1.4" with version 1.4
+        public string Title => Update != null
+            ? (string.IsNullOrWhiteSpace(Update.Version) || (Update.Title ?? string.Empty).Contains(Update.Version.Trim()) ? Update.Title?.Trim() : $"{Update.Title} {Update.Version}".Trim())
             : string.IsNullOrWhiteSpace(NewerFile.Version) ? Loc.T("Update.NewFile", NewerFile.FileName) : Loc.T("Update.NewFileVersion", NewerFile.FileName, NewerFile.Version);
         public string When => StringConverters.FormatTimeAgo(DateTime.UtcNow - (Update?.DateAdded ?? NewerFile.DateAdded));
         public string Changes
@@ -196,6 +198,23 @@ namespace SparkingUnverum
             return match is { Success: true } ? match.Value.Split('.').Select(p => int.TryParse(p, out var n) ? n : 0).ToArray() : null;
         }
 
+        // Null when one of them has no version number
+        public static int? CompareVersions(string a, string b) =>
+            ParseVersion(a) == null || ParseVersion(b) == null ? null : VersionComparer.Compare(a, b);
+
+        // What to say of each file in the window to choose them: the newest, older versions, the one installed
+        public static Dictionary<long, (bool Newest, bool Old, bool Mine)> DescribeFiles(List<GameBananaItemFile> files, IEnumerable<string> mine)
+        {
+            var installed = new HashSet<string>(mine ?? Enumerable.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+            var newest = files.Count > 1 ? files.OrderByDescending(f => f.DateAddedLong).First() : null;
+            return files.ToDictionary(f => f.Id, f => (
+                f == newest,
+                // Another file uploaded later is the same one renamed with a higher number, or has a higher version
+                files.Any(g => g != f && g.DateAddedLong > f.DateAddedLong
+                    && (BaseName(g.FileName) == BaseName(f.FileName) && BaseName(f.FileName).Length > 0 || CompareVersions(g.Version, f.Version) > 0)),
+                installed.Contains(f.FileName)));
+        }
+
         private static readonly Comparer<string> VersionComparer = Comparer<string>.Create((a, b) =>
         {
             var x = ParseVersion(a);
@@ -264,7 +283,7 @@ namespace SparkingUnverum
         {
             if (AutoChoose(pending) is List<GameBananaItemFile> chosen)
                 return chosen;
-            var fileBox = new UpdateFileBox(pending.Submission, pending.Submission.AllFiles, pending.NewerFile?.Id ?? 0, false);
+            var fileBox = new UpdateFileBox(pending.Submission, pending.Submission.AllFiles, pending.NewerFile?.Id ?? 0, false, pending.Metadata.files);
             return fileBox.ShowDialog() == true && fileBox.SelectedFiles.Count > 0 ? fileBox.SelectedFiles : null;
         }
 

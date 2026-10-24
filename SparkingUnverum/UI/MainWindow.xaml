@@ -13,6 +13,7 @@
         Height="750" Width="1280" MinHeight="700" MinWidth="1180" Loaded="WindowLoaded" KeyDown="Window_KeyDown">
     <Window.Resources>
         <FontFamily x:Key="Monospace">../Assets/#Roboto Mono</FontFamily>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
         <!-- Thin tabs next to the list that open the organizer and the roster -->
         <Style x:Key="ThinTab" TargetType="Button">
             <Setter Property="Cursor" Value="Hand"/>
@@ -93,23 +94,57 @@
                         </Rectangle.OpacityMask>
                     </Rectangle>
                     <fa5:ImageAwesome Foreground="{StaticResource AccentBrush}" Grid.Row="0" Icon="Solid_Spinner" Height="50" VerticalAlignment="Center" HorizontalAlignment="Center" Spin="True" SpinDuration="2"/>
-                    <Border Grid.Row="0" Panel.ZIndex="5" Margin="10,16,0,0" Padding="8,3" CornerRadius="3" Background="{StaticResource AccentBrush}"
-                            HorizontalAlignment="Left" VerticalAlignment="Top">
-                        <Border.Style>
-                            <Style TargetType="Border">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsInstalled}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
-                        <StackPanel Orientation="Horizontal">
-                            <fa5:ImageAwesome Icon="Solid_Check" Height="11" Foreground="White" Margin="0,0,5,0"/>
-                            <TextBlock Text="{l:Tr Browser.Installed}" Foreground="White" FontSize="12" FontWeight="Bold"/>
-                        </StackPanel>
-                    </Border>
+                    <!-- Installed (or with a newer version), and new since the last visit -->
+                    <StackPanel Grid.Row="0" Panel.ZIndex="5" Margin="10,16,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+                        <Border Padding="8,3" CornerRadius="3" Background="{StaticResource AccentBrush}" HorizontalAlignment="Left" Margin="0,0,0,4"
+                                Visibility="{Binding ShowInstalled, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel Orientation="Horizontal">
+                                <fa5:ImageAwesome Icon="Solid_Check" Height="11" Foreground="White" Margin="0,0,5,0"/>
+                                <TextBlock Text="{l:Tr Browser.Installed}" Foreground="White" FontSize="12" FontWeight="Bold"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Padding="8,3" CornerRadius="3" Background="#2D6FA3" HorizontalAlignment="Left" Margin="0,0,0,4" ToolTip="{l:Tr Browser.NewVersionTooltip}"
+                                Visibility="{Binding HasModUpdate, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel Orientation="Horizontal">
+                                <fa5:ImageAwesome Icon="Solid_ArrowCircleUp" Height="11" Foreground="White" Margin="0,0,5,0"/>
+                                <TextBlock Text="{l:Tr Browser.NewVersion}" Foreground="White" FontSize="12" FontWeight="Bold"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Padding="8,3" CornerRadius="3" Background="#2E8B57" HorizontalAlignment="Left" Margin="0,0,0,4" ToolTip="{l:Tr Browser.NewSinceTooltip}"
+                                Visibility="{Binding IsNewSinceVisit, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="{l:Tr Browser.NewSince}" Foreground="White" FontSize="11" FontWeight="Bold"/>
+                        </Border>
+                        <Border Padding="8,3" CornerRadius="3" Background="#3B7F86" HorizontalAlignment="Left" Margin="0,0,0,4" ToolTip="{l:Tr Browser.UpdatedSinceTooltip}"
+                                Visibility="{Binding IsUpdatedSinceVisit, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="{l:Tr Browser.UpdatedSince}" Foreground="White" FontSize="11" FontWeight="Bold"/>
+                        </Border>
+                    </StackPanel>
+                    <!-- Favorite -->
+                    <Button Grid.Row="0" Panel.ZIndex="5" Margin="0,14,10,0" Width="32" Height="32" HorizontalAlignment="Right" VerticalAlignment="Top" Click="Favorite_Click"
+                            Visibility="{Binding CanBeFavorite, Converter={StaticResource BoolToVisibility}}" ToolTip="{l:Tr Browser.FavoriteTooltip}"
+                            AutomationProperties.Name="{l:Tr Browser.Favorite}" Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border CornerRadius="16" Background="#B0101010">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <fa5:ImageAwesome Height="16">
+                            <fa5:ImageAwesome.Style>
+                                <Style TargetType="fa5:ImageAwesome">
+                                    <Setter Property="Icon" Value="Regular_Star"/>
+                                    <Setter Property="Foreground" Value="#f2f2f2"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsFavorite}" Value="True">
+                                            <Setter Property="Icon" Value="Solid_Star"/>
+                                            <Setter Property="Foreground" Value="#F2C94C"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </fa5:ImageAwesome.Style>
+                        </fa5:ImageAwesome>
+                    </Button>
 
                     <TextBlock Margin="5" Grid.Row="1" FontWeight="Medium" TextTrimming="WordEllipsis" VerticalAlignment="Center" Foreground="#f2f2f2" Text="{Binding Path=Title}" ToolTip="{Binding Path=Title}"/>
                     <StackPanel Grid.Row="2" Margin="10,-5,10,5" Orientation="Horizontal">
@@ -128,10 +163,25 @@
                         </TextBlock>
                         <Image VerticalAlignment="Center" Source="{Binding Path=Owner.Upic}" Height="25"/>
                     </StackPanel>
-                    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,4">
-                        <Image VerticalAlignment="Center" Source="{Binding Path=Category.Icon}" Margin="0,0,8,0" Stretch="Uniform" Height="25" Width="25"/>
-                        <TextBlock VerticalAlignment="Center" Foreground="#f2f2f2" Text="{Binding Path=CategoryName}" TextTrimming="WordEllipsis"/>
-                        <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" Foreground="#909090" Text="{Binding Path=VersionString}"/>
+                    <StackPanel Grid.Row="3" Margin="0,0,0,4">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Image VerticalAlignment="Center" Source="{Binding Path=Category.Icon}" Margin="0,0,8,0" Stretch="Uniform" Height="25" Width="25"/>
+                            <TextBlock VerticalAlignment="Center" Foreground="#f2f2f2" Text="{Binding Path=CategoryName}" TextTrimming="WordEllipsis"/>
+                            <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" Foreground="#909090" Text="{Binding Path=VersionString}"/>
+                        </StackPanel>
+                        <!-- What it needs, read after the page is shown -->
+                        <TextBlock Margin="10,2,10,0" HorizontalAlignment="Center" Foreground="#E0B050" FontSize="12" TextTrimming="CharacterEllipsis"
+                                   Text="{Binding RequirementsText}" ToolTip="{Binding RequirementsText}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding RequirementsText}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </StackPanel>
                     <StackPanel Background="Transparent" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Row="4" ToolTip="{Binding Path=StatsTooltip}">
                         <fa5:ImageAwesome Margin="0,0,5,0" Height="15" Icon="Solid_Heart" Foreground="#f2f2f2"/>
@@ -177,7 +227,19 @@
                             <ColumnDefinition/>
                         </Grid.ColumnDefinitions>
                         <Button Grid.Column="0" Foreground="#f2f2f2" FontWeight="Medium" Height="30" Width="105" Background="#303030" BorderBrush="#353535" Content="{l:Tr Browser.MoreInfo}" Click="MoreInfo_Click"/>
-                        <Button Grid.Column="1" Foreground="#f2f2f2" FontWeight="Medium" Height="30" Width="105" Background="#303030" BorderBrush="#353535" Content="{l:Tr Browser.Download}" IsEnabled="{Binding Path=Compatible}" Click="Download_Click"/>
+                        <Button Grid.Column="1" Foreground="#f2f2f2" FontWeight="Medium" Height="30" Width="105" Background="#303030" BorderBrush="#353535" IsEnabled="{Binding Path=Compatible}" Click="Download_Click">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                    <Setter Property="Content" Value="{l:Tr Browser.Download}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasModUpdate}" Value="True">
+                                            <Setter Property="Content" Value="{l:Tr Browser.UpdateMod}"/>
+                                            <Setter Property="ToolTip" Value="{l:Tr Browser.UpdateModTooltip}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
                     </Grid>
                 </Grid>
             </Border>
@@ -543,7 +605,16 @@
                                 <SolidColorBrush Color="#080808" Opacity="0.95"/>
                             </Border.Background>
                         </Border>
-                        <TextBlock Grid.ColumnSpan="2" VerticalAlignment="Center" Name="DescTitle" TextTrimming="WordEllipsis" Foreground="#f2f2f2" FontWeight="SemiBold" FontSize="36" Padding="10,3,3,3"/>
+                        <DockPanel Grid.ColumnSpan="2">
+                            <!-- Favorite and follow the author -->
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,20,0">
+                                <Button Name="FavoriteButton" Click="DescFavorite_Click" Margin="0,0,10,0" Height="38" Padding="14,0" FontSize="15" FontWeight="SemiBold" Foreground="#f2f2f2"
+                                        Visibility="Collapsed"/>
+                                <Button Name="FollowButton" Click="Follow_Click" Height="38" Padding="14,0" FontSize="15" FontWeight="SemiBold" Foreground="#f2f2f2" Visibility="Collapsed"
+                                        ToolTip="{l:Tr Browser.FollowTooltip}"/>
+                            </StackPanel>
+                            <TextBlock VerticalAlignment="Center" Name="DescTitle" TextTrimming="WordEllipsis" Foreground="#f2f2f2" FontWeight="SemiBold" FontSize="36" Padding="10,3,3,3"/>
+                        </DockPanel>
                         <Border Grid.Row="1" Grid.ColumnSpan="2" Background="{StaticResource AccentBrush}"/>
                         <fa5:ImageAwesome Name="DescLoading" Grid.Row="2" Grid.ColumnSpan="2" Foreground="{StaticResource AccentBrush}" Icon="Solid_Spinner" Height="80" VerticalAlignment="Center" HorizontalAlignment="Center" Spin="True" SpinDuration="2"/>
                         <StackPanel Name="ImagePanel" Visibility="Collapsed" VerticalAlignment="Center" Grid.Column="1" Grid.Row="2">
@@ -620,21 +691,32 @@
                     </CheckBox>
                     <Image Grid.Column="6" Name="GB" Margin="10,0,10,0" VerticalAlignment="Center" Height="35" Source="../Assets/GameBanana.png" Cursor="Hand" MouseLeftButtonDown="GameBanana_Click" ToolTip="{l:Tr Browser.GoToGameBanana}"/>
 
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Grid.ColumnSpan="7" Grid.Row="2" Margin="10,5,5,5">
+                    <!-- Bottom bar: filters, pages and options side by side, never on top of each other -->
+                    <Grid Grid.ColumnSpan="7" Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="10,5,5,5">
                         <CheckBox Name="ZsJsonCheckbox" IsEnabled="False" Unchecked="LocalFilter_Changed" Checked="LocalFilter_Changed" Margin="0,0,15,0" VerticalAlignment="Center" VerticalContentAlignment="Center">
                             <TextBlock Foreground="#f2f2f2" FontSize="14" FontWeight="Medium" Text="{l:Tr Browser.HideZeroSpark}"/>
                         </CheckBox>
                         <CheckBox Name="ColorZCheckbox" IsEnabled="False" Unchecked="LocalFilter_Changed" Checked="LocalFilter_Changed" VerticalAlignment="Center" VerticalContentAlignment="Center">
                             <TextBlock Foreground="#f2f2f2" FontSize="14" FontWeight="Medium" Text="{l:Tr Browser.HideColorZ}"/>
                         </CheckBox>
+                        <CheckBox Name="HideInstalledCheckbox" IsEnabled="False" Unchecked="LocalFilter_Changed" Checked="LocalFilter_Changed" Margin="15,0,0,0"
+                                  VerticalAlignment="Center" VerticalContentAlignment="Center" ToolTip="{l:Tr Browser.HideInstalledTooltip}">
+                            <TextBlock Foreground="#f2f2f2" FontSize="14" FontWeight="Medium" Text="{l:Tr Browser.HideInstalled}"/>
+                        </CheckBox>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Grid.ColumnSpan="7" Grid.Row="2">
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
                         <Button IsEnabled="False" Name="PageLeft" Click="DecrementPage" Content="&lt;" Margin="0,0,15,0" FontSize="18" FontWeight="Medium" Height="35" Width="35" Background="#181818" BorderBrush="#252525" Foreground="#f2f2f2"/>
                         <TextBlock Name="Page" Foreground="#f2f2f2" VerticalAlignment="Center" FontSize="18" FontWeight="Medium" />
                         <Button IsEnabled="False" Name="PageRight" Click="IncrementPage" Content=">" Margin="15,0,0,0" FontSize="18" FontWeight="Medium" Height="35" Width="35" Background="#181818" BorderBrush="#252525" Foreground="#f2f2f2"/>
                         <ComboBox IsEnabled="False" Margin="15,0,15,0" Name="PageBox" SelectionChanged="PageBox_SelectionChanged" Height="35" MinWidth="60" VerticalAlignment="Center"/>
                     </StackPanel>
-                    <StackPanel Margin="5,5,10,5" Grid.ColumnSpan="7" Orientation="Horizontal" HorizontalAlignment="Right" Grid.Row="2">
+                    <StackPanel Grid.Column="2" Margin="5,5,10,5" Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Margin="0,0,15,0" Click="ClearCache" Name="ClearCacheButton" Content="{l:Tr Browser.Refresh}" FontSize="16" FontWeight="Medium" Height="35" Padding="12,0" Background="#181818" BorderBrush="#252525" IsEnabled="False" Foreground="#f2f2f2"/>
                         <TextBlock Margin="0,0,10,0" Foreground="#f2f2f2" VerticalAlignment="Center" FontSize="16" FontWeight="Medium" Text="{l:Tr Browser.PerPage}"/>
                         <ComboBox IsEnabled="False" Name="PerPageBox" SelectionChanged="PerPageSelectionChanged" Height="35" VerticalAlignment="Center">
@@ -645,6 +727,7 @@
                             <ComboBoxItem>50</ComboBoxItem>
                         </ComboBox>
                     </StackPanel>
+                    </Grid>
 
                     <fa5:ImageAwesome Name="LoadingBar" Grid.ColumnSpan="7" Foreground="{StaticResource AccentBrush}" Panel.ZIndex="1" Grid.Row="1" Icon="Solid_Spinner" Height="110" VerticalAlignment="Center" HorizontalAlignment="Center" Spin="True" SpinDuration="2"/>
                     <StackPanel Name="ErrorPanel" Visibility="Collapsed" Grid.ColumnSpan="7" Grid.Row="1" Panel.ZIndex="1" HorizontalAlignment="Center" VerticalAlignment="Center">

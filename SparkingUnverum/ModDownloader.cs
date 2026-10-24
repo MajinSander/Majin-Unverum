@@ -109,12 +109,13 @@ namespace SparkingUnverum
                 return null;
             }
 
-            var fileBox = new UpdateFileBox(submission, submission.AllFiles, preselectedFile, true);
+            // Reuse the folder if this mod is already installed
+            var existing = FindInstalled(submission);
+            var fileBox = new UpdateFileBox(submission, submission.AllFiles, preselectedFile, true,
+                existing == null ? null : ReadMetadata(Path.Combine(Global.ModsPath, existing))?.files);
             if (fileBox.ShowDialog() != true || fileBox.SelectedFiles.Count == 0)
                 return null;
 
-            // Reuse the folder if this mod is already installed
-            var existing = FindInstalled(submission);
             string folderName = null;
             var replace = false;
             if (existing != null)
@@ -187,11 +188,56 @@ namespace SparkingUnverum
             WriteMetadata(destination, submission, string.Join("\n", fileBox.SelectedFiles.Select(x => x.Description).Where(x => !string.IsNullOrWhiteSpace(x))),
                 fileBox.SelectedFiles.Select(x => x.FileName).ToList());
             Global.logger.WriteLine(Loc.T("Download.Installed", submission.Title, folderName), LoggerType.Info);
+            await OfferRequirements(submission);
             return folderName;
         }
 
+        // Mods being installed as requirements of others, so two mods needing each other don't loop
+        private static readonly HashSet<(string, long)> installing = new();
+
+        // What the mod needs: the ones on GameBanana that aren't installed are offered right away, the rest is told
+        private async Task OfferRequirements(GameBananaSubmission submission)
+        {
+            installing.Add((submission.Model, submission.Id));
+            try
+            {
+                var requirements = submission.Requirements;
+                var missing = requirements.Where(r => r.OnGameBanana && !r.Automatic && FindInstalled(r.Model, r.Id) == null && !installing.Contains((r.Model, r.Id))).ToList();
+                var outside = requirements.Where(r => !r.OnGameBanana && !r.Automatic).ToList();
+                if (missing.Count == 0 && outside.Count == 0)
+                    return;
+                var lines = new List<string> { Loc.T("Requirements.Intro", submission.Title) };
+                lines.AddRange(missing.Select(r => "• " + r.Name));
+                if (outside.Count > 0)
+                {
+                    lines.Add(string.Empty);
+                    lines.Add(Loc.T("Requirements.OutsideIntro"));
+                    lines.AddRange(outside.Select(r => $"• {r.Name}: {r.Url}"));
+                    foreach (var r in outside)
+                        Global.logger.WriteLine(Loc.T("Requirements.OutsideLog", submission.Title, r.Name, r.Url), LoggerType.Warning);
+                }
+                if (missing.Count == 0)
+                {
+                    MessageBox.Show(string.Join("\n", lines), "Majin Unverum", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+                lines.Add(string.Empty);
+                lines.Add(Loc.T(missing.Count == 1 ? "Requirements.AskOne" : "Requirements.Ask"));
+                if (MessageBox.Show(string.Join("\n", lines), "Majin Unverum", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                    return;
+                foreach (var requirement in missing)
+                    await DownloadById(requirement.Model, requirement.Id);
+            }
+            finally
+            {
+                installing.Remove((submission.Model, submission.Id));
+            }
+        }
+
         // Name of the mod folder that was downloaded from the same GameBanana page, if any
-        public static string FindInstalled(GameBananaSubmission submission)
+        public static string FindInstalled(GameBananaSubmission submission) => FindInstalled(submission.Model, submission.Id);
+
+        public static string FindInstalled(string submissionModel, long submissionId)
         {
             if (!Directory.Exists(Global.ModsPath))
                 return null;
@@ -199,7 +245,7 @@ namespace SparkingUnverum
             {
                 var metadata = ReadMetadata(dir);
                 if (metadata?.homepage != null && GameBananaApi.TryParseProfileUrl(metadata.homepage.ToString(), out var model, out var id)
-                    && id == submission.Id && model.Equals(submission.Model, StringComparison.OrdinalIgnoreCase))
+                    && id == submissionId && model.Equals(submissionModel, StringComparison.OrdinalIgnoreCase))
                     return Path.GetFileName(dir);
             }
             return null;
