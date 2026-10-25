@@ -33,6 +33,9 @@ Descarga mods de GameBanana sin salir del programa, instálalos con los botones 
 - **Compartir tu lista**: todos tus mods o solo los activos, en un código que cabe en un mensaje de Discord o en un archivo `.majin`. Tu amigo lo abre y Majin Unverum le descarga lo que le falte y le crea un perfil con tu orden. Los mods que no están en GameBanana pueden ir de verdad en un zip junto con la lista.
 - **Plantilla**: cada personaje de la pantalla de selección con sus trajes (del juego o de qué mod viene cada uno) y los mods que lo cambian. Avisa cuando dos mods activos traen el mismo traje o cambian el mismo personaje y con un clic te quedas con uno. Con el mod CSS Organizer (de Mastaklo) salen las imágenes de los personajes y de los trajes.
 - **Historial**: cada cambio en tus mods (activar, desactivar, ordenar, instalar, borrar) se guarda por perfil; vuelve a como estaban en cualquier momento o deshaz el último cambio.
+- **Tienda de mods**: se abre como la página del juego en GameBanana, marca lo NUEVO y ACTUALIZADO desde tu última visita, avisa de los mods que tienes con versión nueva (y los actualiza desde ahí), enseña lo que necesita cada mod, y guarda favoritos y autores que sigues en «★ Seguidos».
+- **Descargas que no se rompen**: si GameBanana corta la conexión siguen desde donde iban, los archivos grandes bajan en varios trozos a la vez (unas 4 veces más rápido) y se comprueban con la suma de GameBanana.
+- **Actualizaciones más fiables**: mira los archivos de la página y no solo los avisos de actualización, así que detecta versiones nuevas aunque el autor cambie el nombre del archivo.
 
 ## Descarga
 
@@ -63,6 +66,7 @@ Si venías de Sparking Unverum, Majin Unverum lee su configuración y tus mods t
 - **Compartir**: el botón de arriba a la derecha crea el código de tu lista (y el zip con los mods que no están en GameBanana) o importa la de un amigo.
 - **Plantilla**: la pestaña fina debajo de Categorías. Pulsa un personaje para ver sus trajes y sus mods.
 - **Historial**: el botón de arriba a la derecha muestra cada cambio con un botón para volver a ese momento.
+- **Favoritos**: la estrella de cada mod de la tienda, o «Seguir» en su ficha para seguir a su autor; todo sale en el orden «★ Seguidos».
 - **Ajustes**: idioma, actualizaciones, importar desde el Unverum clásico, agrupar mods, liberar espacio y quitar todos los mods del juego.
 
 ---
@@ -93,6 +97,9 @@ Browse and download GameBanana mods inside the app, install them with the websit
 - Share your list: all your mods or only the enabled ones, as a code that fits in a Discord message or a `.majin` file. Your friend opens it and Majin Unverum downloads what is missing and creates a loadout with your order. Mods that aren't on GameBanana can really travel in a zip with the list.
 - Roster: every character of the select screen with its costumes (of the game or from which mod) and the mods that change it. Warns when two enabled mods bring the same costume or change the same character, and one click keeps one. With the CSS Organizer mod (by Mastaklo) the pictures of characters and costumes are shown.
 - History: every change to your mods (enable, disable, sort, install, delete) is kept per loadout; go back to any moment or undo the last change.
+- Mod store: opens like the GameBanana page of the game, tags what is NEW or UPDATED since your last visit, shows installed mods with a newer version (and updates them from there), shows what each mod needs, and keeps favorites and followed authors in "★ Followed".
+- Downloads that don't break: when GameBanana cuts the connection they go on from where they were, big files come in several pieces at once (about 4 times faster) and are checked against GameBanana's checksum.
+- More reliable updates: the files of the page are compared, not only update posts, so new versions are found even when the author renames the file.
 
 **Download:** from [Releases](https://github.com/MajinSander/Majin-Unverum/releases/latest) (Windows 10/11 x64). `MajinUnverum.exe` is the whole program in one file; the `-standalone` zip is the same in a folder; the small zip needs the [.NET 10 Desktop Runtime (x64)](https://dotnet.microsoft.com/download/dotnet/10.0).
 
