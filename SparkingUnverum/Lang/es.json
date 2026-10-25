@@ -687,5 +687,11 @@
   "Files.Old": "Versión antigua",
   "Files.Mine": "La que tienes",
   "Roster.SearchStore": "Buscar sus mods en la tienda",
-  "Roster.SearchStoreTooltip": "Abre la tienda buscando este personaje en GameBanana"
+  "Roster.SearchStoreTooltip": "Abre la tienda buscando este personaje en GameBanana",
+  "Download.NoResume": "El servidor no deja seguir la descarga de {0} desde donde se cortó",
+  "Download.Stalled": "la conexión se quedó parada",
+  "Download.Cut": "la conexión se cortó",
+  "Download.Resuming": "Se cortó la descarga de {0} (llevaba {1}); sigue desde ahí (intento {2} de {3})",
+  "Download.Incomplete": "llegaron {0} de {1}",
+  "Download.Corrupt": "el archivo descargado no coincide con el de GameBanana (suma de comprobación distinta)"
 }

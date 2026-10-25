@@ -450,8 +450,8 @@ namespace SparkingUnverum
                 var archive = Path.Combine(Global.DownloadsPath, Path.GetFileName(file.FileName));
                 try
                 {
-                    using (var stream = new FileStream(archive, FileMode.Create, FileAccess.Write, FileShare.None))
-                        await GameBananaApi.Client.DownloadAsync(file.DownloadUrl, stream, file.FileName, progress, cancellation);
+                    await FileDownloader.DownloadAsync(GameBananaApi.Client, file.DownloadUrl, archive, file.FileName, file.Md5, progress,
+                        new Progress<string>(message => Global.logger.WriteLine(message, LoggerType.Warning)), cancellation);
                     if (await Task.Run(() => ArchiveHelper.Extract(archive, destination)))
                         extracted = true;
                 }

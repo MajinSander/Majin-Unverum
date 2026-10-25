@@ -180,14 +180,17 @@ namespace SparkingUnverum
             var myVersion = mine.Select(f => f.Version).Where(v => ParseVersion(v) != null).OrderByDescending(v => v, VersionComparer).FirstOrDefault();
             if (myVersion == null)
                 return null;
-            // Several downloads of a mod (Base, SSJ...) have their own versions: compare with the same file when the page has it.
-            // A file with another name only counts when it is the version the page announces (its author renamed the download)
+            // Several downloads of a mod (Base, SSJ...) have their own versions: compare with the same file when the page has it
             var sameFile = new HashSet<string>(mine.Select(f => BaseName(f.FileName)));
-            var announced = new[] { submission.Version, submission.Updates?.FirstOrDefault()?.Version }.Where(v => ParseVersion(v) != null).ToList();
-            var candidates = others.Any(f => sameFile.Contains(BaseName(f.FileName)))
-                ? others.Where(f => sameFile.Contains(BaseName(f.FileName)))
-                : others.Where(f => announced.Any(v => VersionComparer.Compare(f.Version, v) == 0));
-            return candidates.Where(f => f.DateAdded >= newestMine && VersionComparer.Compare(f.Version, myVersion) > 0)
+            if (others.Any(f => sameFile.Contains(BaseName(f.FileName))))
+                return others.Where(f => sameFile.Contains(BaseName(f.FileName)) && f.DateAdded >= newestMine && VersionComparer.Compare(f.Version, myVersion) > 0)
+                    .OrderByDescending(f => f.DateAddedLong).FirstOrDefault();
+            // Its author renamed the download: when the page announces a higher version than the downloaded one, the
+            // newest file is it, even without a version written on the file (BetterfightZ 1.5)
+            var announced = new[] { submission.Version, submission.Updates?.FirstOrDefault()?.Version }.Where(v => ParseVersion(v) != null);
+            if (!announced.Any(v => VersionComparer.Compare(v, myVersion) > 0))
+                return null;
+            return others.Where(f => f.DateAdded >= newestMine && (ParseVersion(f.Version) == null || VersionComparer.Compare(f.Version, myVersion) > 0))
                 .OrderByDescending(f => f.DateAddedLong).FirstOrDefault();
         }
 
@@ -319,7 +322,7 @@ namespace SparkingUnverum
                 // Download everything first, the mod folder is only touched when all files arrived
                 foreach (var file in files)
                 {
-                    var archive = await downloader.DownloadFile(file.DownloadUrl, file.FileName, cancellation);
+                    var archive = await downloader.DownloadFile(file.DownloadUrl, file.FileName, cancellation, file.Md5);
                     if (archive == null)
                         return cancellation.IsCancellationRequested ? null : false;
                     archives.Add(archive);

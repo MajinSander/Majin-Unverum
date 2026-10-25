@@ -145,7 +145,7 @@ namespace SparkingUnverum
             foreach (var file in fileBox.SelectedFiles)
             {
                 var url = file.Id == preselectedFile && preselectedUrl != null ? preselectedUrl : file.DownloadUrl;
-                var archive = await DownloadFile(url, file.FileName, cancellation);
+                var archive = await DownloadFile(url, file.FileName, cancellation, file.Md5);
                 if (archive == null)
                 {
                     if (cancellation.IsCancellationRequested)
@@ -323,7 +323,8 @@ namespace SparkingUnverum
         }
 
         // Downloads a file into the Downloads folder, returns its path or null if it failed or was cancelled
-        public async Task<string> DownloadFile(string url, string fileName, CancellationTokenSource cancellation)
+        // md5: checksum published by GameBanana, the download is checked against it
+        public async Task<string> DownloadFile(string url, string fileName, CancellationTokenSource cancellation, string md5 = null)
         {
             Directory.CreateDirectory(Global.DownloadsPath);
             var path = Path.Combine(Global.DownloadsPath, Path.GetFileName(fileName));
@@ -335,8 +336,8 @@ namespace SparkingUnverum
             progressBox.Activate();
             try
             {
-                using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None))
-                    await GameBananaApi.Client.DownloadAsync(url, fs, fileName, new Progress<DownloadProgress>(ReportProgress), cancellation.Token);
+                await FileDownloader.DownloadAsync(GameBananaApi.Client, url, path, fileName, md5, new Progress<DownloadProgress>(ReportProgress),
+                    new Progress<string>(message => Global.logger.WriteLine(message, LoggerType.Warning)), cancellation.Token);
                 return path;
             }
             catch (OperationCanceledException)

@@ -687,5 +687,11 @@
   "Files.Old": "Older version",
   "Files.Mine": "The one you have",
   "Roster.SearchStore": "Search its mods in the store",
-  "Roster.SearchStoreTooltip": "Opens the store searching this character on GameBanana"
+  "Roster.SearchStoreTooltip": "Opens the store searching this character on GameBanana",
+  "Download.NoResume": "The server doesn't let the download of {0} go on from where it was cut",
+  "Download.Stalled": "the connection stalled",
+  "Download.Cut": "the connection was cut",
+  "Download.Resuming": "The download of {0} was cut ({1} so far); it goes on from there (attempt {2} of {3})",
+  "Download.Incomplete": "{0} of {1} arrived",
+  "Download.Corrupt": "the downloaded file doesn't match the one on GameBanana (different checksum)"
 }
