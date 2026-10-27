@@ -13,10 +13,10 @@
     <Authors>Majin</Authors>
     <Company>Majin</Company>
     <Copyright>Majin</Copyright>
-    <Version>2.4.0</Version>
-    <AssemblyVersion>2.4.0.0</AssemblyVersion>
-    <FileVersion>2.4.0.0</FileVersion>
-    <InformationalVersion>2.4.0</InformationalVersion>
+    <Version>2.4.1</Version>
+    <AssemblyVersion>2.4.1.0</AssemblyVersion>
+    <FileVersion>2.4.1.0</FileVersion>
+    <InformationalVersion>2.4.1</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Nullable>disable</Nullable>
     <SatelliteResourceLanguages>en;es</SatelliteResourceLanguages>

@@ -36,6 +36,7 @@ Descarga mods de GameBanana sin salir del programa, instálalos con los botones 
 - **Tienda de mods**: se abre como la página del juego en GameBanana, marca lo NUEVO y ACTUALIZADO desde tu última visita, avisa de los mods que tienes con versión nueva (y los actualiza desde ahí), enseña lo que necesita cada mod, y guarda favoritos y autores que sigues en «★ Seguidos».
 - **Descargas que no se rompen**: si GameBanana corta la conexión siguen desde donde iban, los archivos grandes bajan en varios trozos a la vez (unas 4 veces más rápido) y se comprueban con la suma de GameBanana.
 - **Actualizaciones más fiables**: mira los archivos de la página y no solo los avisos de actualización, así que detecta versiones nuevas aunque el autor cambie el nombre del archivo.
+- **Campo de visión (FOV)**: abre o cierra la cámara del juego con un deslizador que se imanta en los múltiplos de 10. Usa el mod SparkingFOV (de Zett, en Nexus Mods), que Majin Unverum pone en el juego si no lo tienes.
 
 ## Descarga
 
@@ -65,6 +66,7 @@ Si venías de Sparking Unverum, Majin Unverum lee su configuración y tus mods t
 - **Categorías**: la pestaña fina al lado de la lista abre el organizador. Arrastra los mods a las carpetas y pulsa una carpeta para ver solo sus mods. En la lista normal, el filtro de arriba también deja elegir una carpeta.
 - **Compartir**: el botón de arriba a la derecha crea el código de tu lista (y el zip con los mods que no están en GameBanana) o importa la de un amigo.
 - **Plantilla**: la pestaña fina debajo de Categorías. Pulsa un personaje para ver sus trajes y sus mods.
+- **FOV**: la pestaña fina más pequeña, debajo de Plantilla. Guarda y la próxima vez que abras el juego verás la cámara nueva.
 - **Historial**: el botón de arriba a la derecha muestra cada cambio con un botón para volver a ese momento.
 - **Favoritos**: la estrella de cada mod de la tienda, o «Seguir» en su ficha para seguir a su autor; todo sale en el orden «★ Seguidos».
 - **Ajustes**: idioma, actualizaciones, importar desde el Unverum clásico, agrupar mods, liberar espacio y quitar todos los mods del juego.
@@ -100,6 +102,7 @@ Browse and download GameBanana mods inside the app, install them with the websit
 - Mod store: opens like the GameBanana page of the game, tags what is NEW or UPDATED since your last visit, shows installed mods with a newer version (and updates them from there), shows what each mod needs, and keeps favorites and followed authors in "★ Followed".
 - Downloads that don't break: when GameBanana cuts the connection they go on from where they were, big files come in several pieces at once (about 4 times faster) and are checked against GameBanana's checksum.
 - More reliable updates: the files of the page are compared, not only update posts, so new versions are found even when the author renames the file.
+- Field of view (FOV): widen or narrow the game camera with a slider that snaps to multiples of 10. It uses the SparkingFOV mod (by Zett, on Nexus Mods), which Majin Unverum puts in the game if you don't have it.
 
 **Download:** from [Releases](https://github.com/MajinSander/Majin-Unverum/releases/latest) (Windows 10/11 x64). `MajinUnverum.exe` is the whole program in one file; the `-standalone` zip is the same in a folder; the small zip needs the [.NET 10 Desktop Runtime (x64)](https://dotnet.microsoft.com/download/dotnet/10.0).
 
