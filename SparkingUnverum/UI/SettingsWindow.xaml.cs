@@ -23,6 +23,7 @@ namespace SparkingUnverum.UI
             AppUpdatesCheckbox.IsChecked = Global.config.CheckAppUpdates;
             ModUpdatesCheckbox.IsChecked = Global.config.CheckModUpdatesOnStart;
             AboutText.Text = Loc.T("Settings.AboutText", App.Version);
+            CreditsFovText.Text = Loc.T("Settings.CreditsFov", SparkingFov.ModName, SparkingFov.Author);
             loading = false;
         }
 

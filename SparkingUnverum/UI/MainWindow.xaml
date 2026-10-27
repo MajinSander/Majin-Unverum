@@ -391,6 +391,8 @@
                                 <RowDefinition/>
                                 <RowDefinition Height="4"/>
                                 <RowDefinition/>
+                                <RowDefinition Height="4"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             <Button Name="CategoriesTab" Style="{StaticResource ThinTab}"
                                     ToolTip="{l:Tr Main.CategoriesTooltip}" AutomationProperties.Name="{l:Tr Main.CategoriesTab}" Click="CategoriesTab_Click">
@@ -408,6 +410,18 @@
                                 <StackPanel VerticalAlignment="Center">
                                     <fa5:ImageAwesome Icon="Solid_UserFriends" Height="11" Foreground="#c2c2c2" Margin="0,0,0,8"/>
                                     <TextBlock Text="{l:Tr Roster.Tab}" Foreground="#c2c2c2" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center">
+                                        <TextBlock.LayoutTransform>
+                                            <RotateTransform Angle="90"/>
+                                        </TextBlock.LayoutTransform>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Button>
+                            <!-- Field of view (SparkingFOV mod, see SparkingFov.cs) -->
+                            <Button Name="FovTab" Grid.Row="4" Height="46" Style="{StaticResource ThinTab}"
+                                    ToolTip="{l:Tr Fov.TabTooltip}" AutomationProperties.Name="{l:Tr Fov.Tab}" Click="FovTab_Click">
+                                <StackPanel VerticalAlignment="Center">
+                                    <fa5:ImageAwesome Icon="Solid_Eye" Height="10" Foreground="#c2c2c2" Margin="0,0,0,5"/>
+                                    <TextBlock Text="{l:Tr Fov.Tab}" Foreground="#c2c2c2" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center">
                                         <TextBlock.LayoutTransform>
                                             <RotateTransform Angle="90"/>
                                         </TextBlock.LayoutTransform>

@@ -99,6 +99,9 @@
             </Hyperlink>
         </TextBlock>
 
+        <TextBlock Style="{StaticResource SectionTitle}" Text="{l:Tr Settings.Credits}"/>
+        <TextBlock Name="CreditsFovText" Foreground="#c2c2c2" FontSize="14" TextWrapping="Wrap"/>
+
         <Button Margin="0,16,0,0" Height="38" FontSize="16" FontWeight="Bold" Background="#494949" Foreground="#f2f2f2" Content="{l:Tr Common.Close}" Click="Close_Click" IsCancel="True"/>
     </StackPanel>
 </Window>

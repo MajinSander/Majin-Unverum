@@ -382,6 +382,14 @@ namespace SparkingUnverum
             RosterPanel.Open();
         }
 
+        private void FovTab_Click(object sender, RoutedEventArgs e)
+        {
+            var paths = GamePaths.Current;
+            if (busy || paths == null)
+                return;
+            new FovWindow(paths).ShowDialog();
+        }
+
         // A mod chosen in the roster, found in the list with nothing hiding it
         private void ShowModInList(string name)
         {

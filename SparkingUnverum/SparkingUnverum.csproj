@@ -26,6 +26,9 @@
     <!-- Sig/UTOC bypass that gets installed next to SparkingZERO-Win64-Shipping.exe -->
     <EmbeddedResource Include="Resources\Patch\dsound.dll" LogicalName="Patch/dsound.dll" />
     <EmbeddedResource Include="Resources\Patch\plugins\DBSparkingZeroUTOCBypass.asi" LogicalName="Patch/plugins/DBSparkingZeroUTOCBypass.asi" />
+    <!-- SparkingFOV, a mod by another author put in the game by the FOV tab (see SparkingFov.cs) -->
+    <EmbeddedResource Include="Resources\SparkingFOV\version.dll" LogicalName="SparkingFOV/version.dll" />
+    <EmbeddedResource Include="Resources\SparkingFOV\DBSZ_SparkingFOV.ini" LogicalName="SparkingFOV/DBSZ_SparkingFOV.ini" />
     <!-- Translations -->
     <EmbeddedResource Include="Lang\es.json" LogicalName="Lang/es.json" />
     <EmbeddedResource Include="Lang\en.json" LogicalName="Lang/en.json" />
