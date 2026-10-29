@@ -21,8 +21,13 @@ namespace SparkingUnverum
 
         private void Window_Closing(object sender, CancelEventArgs e)
         {
-            if (!finished)
-                cancellationTokenSource?.Cancel();
+            if (finished)
+                return;
+            // Work that can't be stopped halfway (extracting a mod) keeps its window until it ends
+            if (cancellationTokenSource == null)
+                e.Cancel = true;
+            else
+                cancellationTokenSource.Cancel();
         }
     }
 }

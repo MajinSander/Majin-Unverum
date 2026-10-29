@@ -154,15 +154,16 @@ namespace SparkingUnverum
                 }
                 try
                 {
-                    await Task.Run(() =>
+                    await WithExtractionBox(file.FileName, progress =>
                     {
                         // Settings the game saved in the mod are put back after extracting
                         if (replace && kept == null)
                             kept = ArchiveHelper.SetAside(destination);
-                        if (ArchiveHelper.Extract(archive, destination))
+                        if (ArchiveHelper.Extract(archive, destination, progress))
                             extractedAny = true;
                         else
                             Global.logger.WriteLine(Loc.T("Download.EmptyArchive", file.FileName), LoggerType.Warning);
+                        return true;
                     });
                 }
                 catch (Exception e)
@@ -320,6 +321,31 @@ namespace SparkingUnverum
             progressBox.progressTitle.Text = Loc.T("Download.Downloading", progress.FileName);
             progressBox.progressText.Text = Loc.T("Download.Progress", Math.Round(progress.Percentage * 100, 2),
                 StringConverters.FormatSize(progress.DownloadedBytes), StringConverters.FormatSize(progress.TotalBytes));
+        }
+
+        // Runs an extraction with a window that tells which file is being extracted: big mods take minutes and
+        // the program looked frozen without it
+        public static async Task<T> WithExtractionBox<T>(string name, Func<IProgress<DownloadProgress>, T> work)
+        {
+            var box = new ProgressBox(null) { Title = Loc.T("Extract.Title") };
+            box.progressTitle.Text = Loc.T("Extract.Extracting", name);
+            box.Show();
+            box.Activate();
+            var progress = new Progress<DownloadProgress>(p =>
+            {
+                box.progressBar.Value = p.Percentage * 100;
+                box.taskBarItem.ProgressValue = p.Percentage;
+                box.progressText.Text = Loc.T("Extract.Progress", p.FileName, StringConverters.FormatSize(p.DownloadedBytes), StringConverters.FormatSize(p.TotalBytes));
+            });
+            try
+            {
+                return await Task.Run(() => work(progress));
+            }
+            finally
+            {
+                box.finished = true;
+                box.Close();
+            }
         }
 
         // Downloads a file into the Downloads folder, returns its path or null if it failed or was cancelled

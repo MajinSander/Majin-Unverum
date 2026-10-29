@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using SharpCompress.Archives;
 using SharpCompress.Common;
+using SharpCompress.Readers;
 
 namespace SparkingUnverum
 {
@@ -11,8 +12,9 @@ namespace SparkingUnverum
         // Files GameBanana sometimes serves without an archive around them
         private static readonly string[] LooseExtensions = { ".pak", ".utoc", ".ucas", ".sig", ".json", ".lua", ".dll", ".txt" };
 
-        // Extracts zip, rar and 7z archives into destination, returns false if nothing was extracted
-        public static bool Extract(string archivePath, string destination)
+        // Extracts zip, rar and 7z archives into destination, returns false if nothing was extracted.
+        // progress: bytes written of all the files, and the file being extracted
+        public static bool Extract(string archivePath, string destination, IProgress<DownloadProgress> progress = null)
         {
             Directory.CreateDirectory(destination);
             if (LooseExtensions.Contains(Path.GetExtension(archivePath).ToLowerInvariant()))
@@ -20,17 +22,43 @@ namespace SparkingUnverum
                 File.Copy(archivePath, Path.Combine(destination, Path.GetFileName(archivePath)), true);
                 return true;
             }
+            var options = new ExtractionOptions()
+            {
+                ExtractFullPath = true,
+                Overwrite = true
+            };
             var count = 0;
             using (var archive = ArchiveFactory.OpenArchive(archivePath))
             {
-                foreach (var entry in archive.Entries.Where(x => !x.IsDirectory))
+                var total = archive.Entries.Where(x => !x.IsDirectory).Sum(x => Math.Max(0, x.Size));
+                long done = 0;
+                void Report(string name) =>
+                    progress?.Report(new DownloadProgress(total > 0 ? (float)done / total : 0, done, total, name));
+                // Solid archives (most 7z) keep their files in one compressed block: opening a file on its own decompresses
+                // the block again from the start. Anime Accurate Aura (1.8 GB) took a minute per small file after the big
+                // one and seemed frozen. They are read once from start to end
+                if (archive.IsSolid || archive.Type == ArchiveType.SevenZip)
                 {
-                    entry.WriteToDirectory(destination, new ExtractionOptions()
+                    using var reader = archive.ExtractAllEntries();
+                    while (reader.MoveToNextEntry())
                     {
-                        ExtractFullPath = true,
-                        Overwrite = true
-                    });
-                    count++;
+                        if (reader.Entry.IsDirectory)
+                            continue;
+                        Report(Path.GetFileName(reader.Entry.Key));
+                        reader.WriteEntryToDirectory(destination, options);
+                        done += Math.Max(0, reader.Entry.Size);
+                        count++;
+                    }
+                }
+                else
+                {
+                    foreach (var entry in archive.Entries.Where(x => !x.IsDirectory))
+                    {
+                        Report(Path.GetFileName(entry.Key));
+                        entry.WriteToDirectory(destination, options);
+                        done += Math.Max(0, entry.Size);
+                        count++;
+                    }
                 }
             }
             return count > 0;
