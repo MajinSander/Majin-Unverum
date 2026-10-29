@@ -327,14 +327,14 @@ namespace SparkingUnverum
                         return cancellation.IsCancellationRequested ? null : false;
                     archives.Add(archive);
                 }
-                await Task.Run(() =>
+                await ModDownloader.WithExtractionBox(pending.Name, progress =>
                 {
                     // Settings the game saved in the mod are put back after extracting
                     var kept = ArchiveHelper.SetAside(pending.Folder);
                     try
                     {
                         foreach (var archive in archives)
-                            ArchiveHelper.Extract(archive, pending.Folder);
+                            ArchiveHelper.Extract(archive, pending.Folder, progress);
                         ArchiveHelper.RestoreUserFiles(pending.Folder, kept, pending.Metadata.installed);
                     }
                     catch
@@ -343,6 +343,7 @@ namespace SparkingUnverum
                         ArchiveHelper.RestoreUserFiles(pending.Folder, kept, DateTime.MinValue);
                         throw;
                     }
+                    return true;
                 });
                 ModDownloader.WriteMetadata(pending.Folder, pending.Submission,
                     string.Join("\n", files.Select(x => x.Description).Where(x => !string.IsNullOrWhiteSpace(x))), files.Select(x => x.FileName).ToList());
