@@ -263,6 +263,13 @@
                     <TextBlock Text="{l:Tr Share.Button}" FontSize="15" FontWeight="Medium" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
+            <Button Name="ReShadeButton" Click="ReShade_Click" Margin="5,3,0,3" Height="30" Padding="8,0" Background="#181818" BorderBrush="#252525" Foreground="#f2f2f2"
+                    ToolTip="{l:Tr ReShade.ButtonTooltip}" AutomationProperties.Name="{l:Tr ReShade.Button}">
+                <StackPanel Orientation="Horizontal">
+                    <fa5:ImageAwesome Icon="Solid_Magic" Height="15" Foreground="#f2f2f2" Margin="0,0,6,0"/>
+                    <TextBlock Text="{l:Tr ReShade.Button}" FontSize="15" FontWeight="Medium" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
             <Button Name="SettingsButton" Click="Settings_Click" Margin="5,3,8,3" Height="30" Padding="8,0" Background="#181818" BorderBrush="#252525" Foreground="#f2f2f2" ToolTip="{l:Tr Main.Settings}">
                 <StackPanel Orientation="Horizontal">
                     <fa5:ImageAwesome Icon="Solid_Cog" Height="16" Foreground="#f2f2f2" Margin="0,0,6,0"/>
