@@ -1,0 +1,152 @@
+<Window x:Class="SparkingUnverum.UI.ReShadeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:fa5="http://schemas.fontawesome.com/icons/"
+        xmlns:l="clr-namespace:SparkingUnverum"
+        Title="{l:Tr ReShade.Title}" WindowStartupLocation="CenterOwner" Icon="../Assets/app.ico"
+        Width="820" Height="680" MinWidth="620" MinHeight="460" Background="#202020">
+    <Window.Resources>
+        <Style x:Key="HiddenWhenEmpty" TargetType="TextBlock">
+            <Style.Triggers>
+                <Trigger Property="Text" Value="">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </Trigger>
+                <Trigger Property="Text" Value="{x:Null}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <DataTemplate x:Key="SlotTemplate">
+            <Border x:Name="Row" Margin="4,4" Padding="12,10" CornerRadius="4" Background="#2a2a2a" BorderThickness="2" BorderBrush="Transparent">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="34"/>
+                        <ColumnDefinition/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <fa5:ImageAwesome Icon="{Binding Icon}" Height="20" Foreground="{Binding IconColor}" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="0,2,0,0"/>
+                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                        <TextBlock Text="{Binding Name}" Foreground="#f2f2f2" FontSize="16" FontWeight="Bold" TextWrapping="Wrap"/>
+                        <ItemsControl ItemsSource="{Binding Chips}" Margin="0,4,0,0">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border CornerRadius="3" Background="#383838" Padding="7,2" Margin="0,2,5,2">
+                                        <TextBlock Text="{Binding}" Foreground="#e2e2e2" FontSize="12"/>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="{Binding Notes}" Foreground="#c2c2c2" FontSize="13" FontStyle="Italic" TextWrapping="Wrap" Margin="0,4,0,0" Style="{StaticResource HiddenWhenEmpty}"/>
+                        <TextBlock Text="{Binding Details}" Foreground="#8a8a8a" FontSize="11.5" TextWrapping="Wrap" Margin="0,4,0,0" Style="{StaticResource HiddenWhenEmpty}"/>
+                        <TextBlock Text="{Binding Health}" Foreground="{Binding HealthColor}" FontSize="12" TextWrapping="Wrap" Margin="0,3,0,0" Style="{StaticResource HiddenWhenEmpty}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center" MinWidth="150">
+                        <Border x:Name="InUse" CornerRadius="3" Background="#3a2a1a" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                                Padding="10,5" Visibility="Collapsed" HorizontalAlignment="Stretch">
+                            <TextBlock Text="{l:Tr ReShade.InUse}" Foreground="#f2f2f2" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                        </Border>
+                        <Border x:Name="UseBorder" CornerRadius="3" Background="{StaticResource AccentBrush}">
+                            <Button Margin="2" Height="32" Padding="12,0" FontWeight="Bold" Foreground="#f2f2f2" Content="{Binding UseText}"
+                                    ToolTip="{Binding UseTooltip}" Click="Use_Click"/>
+                        </Border>
+                        <StackPanel x:Name="Tools" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
+                            <Button Height="26" Padding="8,0" Margin="0,0,4,0" Background="#494949" Foreground="#f2f2f2" ToolTip="{l:Tr ReShade.VerifyTooltip}"
+                                    AutomationProperties.Name="{l:Tr ReShade.Verify}" Click="Verify_Click">
+                                <fa5:ImageAwesome Icon="Solid_ShieldAlt" Height="13" Foreground="#f2f2f2"/>
+                            </Button>
+                            <Button Height="26" Padding="8,0" Margin="0,0,4,0" Background="#494949" Foreground="#f2f2f2" ToolTip="{l:Tr ReShade.EditTooltip}"
+                                    AutomationProperties.Name="{l:Tr ReShade.Edit}" Click="Edit_Click">
+                                <fa5:ImageAwesome Icon="Solid_Pen" Height="13" Foreground="#f2f2f2"/>
+                            </Button>
+                            <Button Height="26" Padding="8,0" Margin="0,0,4,0" Background="#494949" Foreground="#f2f2f2" ToolTip="{l:Tr ReShade.OpenTooltip}"
+                                    AutomationProperties.Name="{l:Tr ReShade.Open}" Click="Open_Click">
+                                <fa5:ImageAwesome Icon="Solid_FolderOpen" Height="13" Foreground="#f2f2f2"/>
+                            </Button>
+                            <Button Height="26" Padding="8,0" Background="#494949" Foreground="#f2f2f2" ToolTip="{l:Tr ReShade.DeleteTooltip}"
+                                    AutomationProperties.Name="{l:Tr ReShade.Delete}" Click="Delete_Click">
+                                <fa5:ImageAwesome Icon="Solid_TrashAlt" Height="13" Foreground="#f2f2f2"/>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                    <Setter TargetName="Row" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                    <Setter TargetName="InUse" Property="Visibility" Value="Visible"/>
+                    <Setter TargetName="UseBorder" Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsNone}" Value="True">
+                    <Setter TargetName="Tools" Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Margin="5,0,5,10" Foreground="#c2c2c2" FontSize="13" TextWrapping="Wrap" Text="{l:Tr ReShade.Intro}"/>
+
+        <!-- What the game has right now -->
+        <Border Grid.Row="1" Margin="4,0,4,6" Padding="14,10" CornerRadius="4" Background="#262626" BorderBrush="#3a3a3a" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="34"/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <fa5:ImageAwesome Name="GameIcon" Icon="Solid_Gamepad" Height="20" Foreground="#a2a2a2" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="0,2,0,0"/>
+                <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                    <TextBlock Text="{l:Tr ReShade.InGame}" Foreground="#909090" FontSize="12"/>
+                    <TextBlock Name="GameTitle" Foreground="#f2f2f2" FontSize="16" FontWeight="Bold" TextWrapping="Wrap"/>
+                    <TextBlock Name="GameDetail" Foreground="#c2c2c2" FontSize="12.5" TextWrapping="Wrap" Margin="0,3,0,0" Style="{StaticResource HiddenWhenEmpty}"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" VerticalAlignment="Center" Name="CapturePanel">
+                    <Border Name="TakeOutBorder" CornerRadius="3" Background="{StaticResource AccentBrush}" Margin="0,0,0,6">
+                        <Button Name="TakeOutButton" Margin="2" Height="32" Padding="12,0" FontWeight="Bold" Foreground="#f2f2f2" Click="TakeOut_Click"
+                                ToolTip="{l:Tr ReShade.TakeOutTooltip}">
+                            <StackPanel Orientation="Horizontal">
+                                <fa5:ImageAwesome Icon="Solid_SignOutAlt" Height="13" Foreground="#f2f2f2" Margin="0,0,8,0"/>
+                                <TextBlock Text="{l:Tr ReShade.TakeOut}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </Border>
+                    <Button Name="CopyButton" Height="28" Padding="12,0" Background="#494949" Foreground="#f2f2f2" FontWeight="SemiBold" Click="Copy_Click"
+                            ToolTip="{l:Tr ReShade.CopyTooltip}">
+                        <StackPanel Orientation="Horizontal">
+                            <fa5:ImageAwesome Icon="Solid_Copy" Height="12" Foreground="#f2f2f2" Margin="0,0,8,0"/>
+                            <TextBlock Text="{l:Tr ReShade.Copy}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <DockPanel Grid.Row="2" Margin="6,6,6,2">
+            <TextBlock DockPanel.Dock="Right" FontSize="12" VerticalAlignment="Center">
+                <Hyperlink Foreground="#a2a2a2" Click="OpenAll_Click"><Run Text="{l:Tr ReShade.OpenAll}"/></Hyperlink>
+            </TextBlock>
+            <TextBlock Text="{l:Tr ReShade.Slots}" Foreground="#f2f2f2" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"/>
+            <TextBlock Name="StatusText" Margin="14,0,10,0" Foreground="{StaticResource AccentBrush}" FontSize="13" VerticalAlignment="Center" TextWrapping="Wrap"/>
+        </DockPanel>
+
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+            <ItemsControl Name="SlotList" ItemTemplate="{StaticResource SlotTemplate}"/>
+        </ScrollViewer>
+
+        <Button Grid.Row="4" Margin="5,8,5,0" Height="38" FontSize="16" FontWeight="Bold" Background="#494949" Foreground="#f2f2f2"
+                Content="{l:Tr Common.Close}" Click="Close_Click" IsCancel="True"/>
+    </Grid>
+</Window>

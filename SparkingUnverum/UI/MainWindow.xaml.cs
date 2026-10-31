@@ -643,6 +643,19 @@ namespace SparkingUnverum
             Global.UpdateConfig();
         }
 
+        private void ReShade_Click(object sender, RoutedEventArgs e)
+        {
+            var paths = GamePaths.Current;
+            if (busy)
+                return;
+            if (paths == null)
+            {
+                MessageBox.Show(Loc.T("ReShade.NoGame"), Loc.T("ReShade.Title"), MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            new ReShadeWindow(paths) { Owner = this }.ShowDialog();
+        }
+
         private void Settings_Click(object sender, RoutedEventArgs e)
         {
             var settings = new SettingsWindow { Owner = this, Merge = MergeGroup };
