@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using SharpCompress.Archives;
@@ -23,8 +23,13 @@ namespace SparkingUnverum
             var count = 0;
             using (var archive = ArchiveFactory.OpenArchive(archivePath))
             {
+                var destinationRoot = Path.GetFullPath(destination).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
                 foreach (var entry in archive.Entries.Where(x => !x.IsDirectory))
                 {
+                    var target = Path.GetFullPath(Path.Combine(destination, entry.Key ?? string.Empty));
+                    if (!target.StartsWith(destinationRoot, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
                     entry.WriteToDirectory(destination, new ExtractionOptions()
                     {
                         ExtractFullPath = true,
